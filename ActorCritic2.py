@@ -23,13 +23,13 @@ num_inputs = 5
 num_actions = 3
 num_hidden = 128
 
-inputs = layers.Input(shape=(num_batch,num_inputs))
+inputs = layers.Input(batch_shape = (1,num_batch,num_inputs))
 #common = layers.Dense(100, activation="relu")(inputs)
-lstm1 = layers.LSTM(50, return_sequences = True, activation="tanh")(inputs)
+lstm1 = layers.LSTM(50, return_sequences = True, activation="tanh", stateful = True)(inputs)
 drop1 = layers.Dropout(0.2)(lstm1)
-lstm2 = layers.LSTM(50, return_sequences = True, activation = 'relu')(drop1)
+lstm2 = layers.LSTM(50, return_sequences = True, activation = 'relu', stateful = True)(drop1)
 drop2 = layers.Dropout(0.2)(lstm2)
-lstm3 = layers.LSTM(units = 25, return_sequences = False, activation = 'relu')(drop2)
+lstm3 = layers.LSTM(units = 25, return_sequences = False, activation = 'relu', stateful = True)(drop2)
 action = layers.Dense(num_actions, activation="softmax")(lstm3)
 critic = layers.Dense(1)(lstm3)
 
@@ -44,10 +44,10 @@ rewards_history = []
 env = StockEnv.StockEnv("KO", 1000,num_batch, 0 )
 
 while True:  # Run until solved
-    state = env.States.to_numpy()
+    state = env.State.to_array()
     with tf.GradientTape() as tape: 
         for timestep in range(1, 10):
-            x = tf.Variable([state], trainable=True, dtype=tf.float32)
+            x = tf.Variable([[state]], trainable=True, dtype=tf.float32)
             # Predict action probabilities and estimated future rewards
             # from environment state
             action_probs, critic_value = model(x)
@@ -57,7 +57,9 @@ while True:  # Run until solved
             action = np.random.choice(num_actions, p=np.squeeze(action_probs))
             #print(action)
             action_probs_history.append(tf.math.log(action_probs[0, action]))
-
+            
+      
+            action = np.random.choice(num_actions, p=np.squeeze(action_probs))
             # Apply the sampled action in our environment
             state, reward = env.Step(action)
             rewards_history.append(reward)
