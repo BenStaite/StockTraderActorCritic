@@ -42,8 +42,6 @@ class StockEnv:
         self.ShareScale = 50
         firstrow = self.Data.iloc[timestep]
         self.State = State(firstrow['Datetime'], firstrow['Price'], firstrow['Volume'], 0, startBal/self.BalScale)
-        self.States =pandas.DataFrame(np.zeros((self.BatchSize,5)))
-        self.States.iloc[0] = self.State.to_array()
         
     def LoadData(self, ticker):
         yf.pdr_override() # <== that's all it takes :-)
@@ -73,7 +71,6 @@ class StockEnv:
     def Step(self, action):
         self.Penalty = 0
         self.PreviousState = copy.deepcopy(self.State)
-        self.States = self.States.shift(1)
        # self.AllStates.append(self.State.to_array())
         if (action == 0):
             self.Hold()
@@ -83,7 +80,6 @@ class StockEnv:
             self.Sell()
         self.State.Shares = (round(self.State.Shares*self.ShareScale))/self.ShareScale
         reward = self.GetReward()
-        self.States.iloc[0] = self.State.to_array()
         if(self.TimeStep > len(self.Data.index)-4):
             self.Finished = True
         return self.State.to_array(), reward
