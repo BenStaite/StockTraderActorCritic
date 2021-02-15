@@ -18,7 +18,7 @@ import pandas
 gamma = 0.99
 eps = np.finfo(np.float32).eps.item()
 
-num_batch = 5
+num_batch = 1
 num_inputs = 5
 num_actions = 3
 num_hidden = 128
