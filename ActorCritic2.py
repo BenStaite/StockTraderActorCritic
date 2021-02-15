@@ -58,8 +58,11 @@ while True:  # Run until solved
             #print(action)
             action_probs_history.append(tf.math.log(action_probs[0, action]))
             
-      
-            action = np.random.choice(num_actions, p=np.squeeze(action_probs))
+            if(np.isnan(action_probs).any()):
+                action = 0
+                print("NAN")
+            else:                
+                action = np.random.choice(num_actions, p=np.squeeze(action_probs))
             # Apply the sampled action in our environment
             state, reward = env.Step(action)
             rewards_history.append(reward)
