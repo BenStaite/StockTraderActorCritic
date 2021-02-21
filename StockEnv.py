@@ -32,7 +32,7 @@ class State:
 class StockEnv:
     
     def __init__(self, ticker, startBal, batchsize, timestep):
-        data = self.LoadData(ticker)
+        data = self.LoadData(ticker).fillna(0)
         self.BatchSize = batchsize
         self.Finished = False
         self.Data, self.PriceScale, self.VolumeScale = self.FormatData(data)
@@ -42,11 +42,13 @@ class StockEnv:
         self.ShareScale = 50
         firstrow = self.Data.iloc[timestep]
         self.State = State(firstrow['Datetime'], firstrow['Price'], firstrow['Volume'], 0, startBal/self.BalScale)
+        self.States =pandas.DataFrame(np.zeros((self.BatchSize,5)))
+        self.States.iloc[0] = self.State.to_array()
         
     def LoadData(self, ticker):
         yf.pdr_override() 
         ftse = yf.Ticker(ticker)
-        data = ftse.history(start="2021-01-20", end="2021-01-27", interval = "1m")
+        data = ftse.history(start="2021-01-25", end="2021-01-27", interval = "1m")
         data2 = ftse.history(start="2021-01-27", end="2021-02-03", interval = "1m")
         data3 = ftse.history(start="2021-02-03", end="2021-02-10", interval = "1m")
         data = pandas.concat([data,data2,data3], axis = 0)
@@ -66,6 +68,7 @@ class StockEnv:
     def Step(self, action):
         self.Penalty = 0
         self.PreviousState = copy.deepcopy(self.State)
+        self.States = self.States.shift(1)
         if (action == 0):
             self.Hold()
         elif(action == 1):
@@ -74,9 +77,10 @@ class StockEnv:
             self.Sell()
         self.State.Shares = (round(self.State.Shares*self.ShareScale))/self.ShareScale
         reward = self.GetReward()
+        self.States.iloc[0] = self.State.to_array()
         if(self.TimeStep > len(self.Data.index)-4):
             self.Finished = True
-        return self.State.to_array(), reward
+        return self.States.to_numpy(), reward
     
     def GetStateValue(self, state):
         return ((state.Balance * self.BalScale) + ((state.Shares*self.ShareScale) * (state.Price* self.PriceScale)))
